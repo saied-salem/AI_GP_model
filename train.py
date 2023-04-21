@@ -39,7 +39,7 @@ def train_model(
         model,
         device,
         epochs: int = 5,
-        batch_size: int = 1,
+        batch_size: int = 32,
         learning_rate: float = 1e-5,
         val_percent: float = 0.1,
         save_checkpoint: bool = True,
@@ -168,12 +168,12 @@ def train_model(
                         except:
                             pass
 
-        if save_checkpoint:
-            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-            state_dict = model.state_dict()
-            state_dict['mask_values'] = dataset.mask_values
-            torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
-            logging.info(f'Checkpoint {epoch} saved!')
+        # if save_checkpoint:
+        #     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+        #     state_dict = model.state_dict()
+        #     state_dict['mask_values'] = dataset.mask_values
+        #     torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
+        #     logging.info(f'Checkpoint {epoch} saved!')
 
 
 def get_args():
