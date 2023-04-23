@@ -44,7 +44,7 @@ class BasicDataset(Dataset):
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
         self.scale = scale
         print(mask_dir)
-        self.mask_values = list(sorted(load_image(mask_dir[0])))
+        self.mask_values = list(sorted(np.unique(np.array(load_image(mask_dir[0])))))
 
 
     def __len__(self):
