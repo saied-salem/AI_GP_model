@@ -98,6 +98,8 @@ class BasicDataset(Dataset):
             else:
                 img = img[:,:,:3].transpose((2, 0, 1))
 
+            if (img > 1).any():
+                img = img / 255.0
 
             return torch.tensor(img)
 

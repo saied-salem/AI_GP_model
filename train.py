@@ -38,6 +38,10 @@ dir_checkpoint = Path('./checkpoints/')
 def train_model(
         model,
         device,
+        weights_dir,
+        images_list,
+        targets_list,
+        load_weights =False,
         epochs: int = 5,
         batch_size: int = 32,
         learning_rate: float = 1e-5,
@@ -48,10 +52,33 @@ def train_model(
         weight_decay: float = 1e-8,
         momentum: float = 0.999,
         gradient_clipping: float = 1.0,
+        
 ):
+    
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logging.info(f'Using device {device}')
+
+    # Change here to adapt to your data
+    # n_channels=3 for RGB images
+    # n_classes is the number of probabilities you want to get per pixe
+    model = model.to(memory_format=torch.channels_last)
+
+    logging.info(f'Network:\n'
+                 f'\t{model.n_channels} input channels\n'
+                 f'\t{model.n_classes} output channels (classes)\n'
+                 f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling')
+
+    if load_weights:
+        state_dict = torch.load(weights_dir, map_location=device)
+        del state_dict['mask_values']
+        model.load_state_dict(state_dict)
+        logging.info(f'Model loaded from {weights_dir}')
+
+    model.to(device=device)
     # 1. Create dataset
 
-    dataset = BasicDataset(all_images, all_masks, img_scale)
+    dataset = BasicDataset(images_list, targets_list, img_scale)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -85,11 +112,11 @@ def train_model(
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.RMSprop(model.parameters(),
                               lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor= 0.9, patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
-
+    best_metric =-1
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         model.train()
@@ -150,8 +177,14 @@ def train_model(
 
                         val_score = evaluate(model, val_loader, device, amp)
                         scheduler.step(val_score)
-
                         logging.info('Validation Dice score: {}'.format(val_score))
+                        if val_score>best_metric :
+                            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+                            state_dict = model.state_dict()
+                            state_dict['mask_values'] = dataset.mask_values
+                            torch.save(state_dict, str(dir_checkpoint / 'best_checkpoint_dice_val_score.pth'))
+                            logging.info(f'Checkpoint {epoch} saved!')
+                            best_metric = val_score
                         try:
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
@@ -168,12 +201,6 @@ def train_model(
                         except:
                             pass
 
-        # if save_checkpoint:
-        #     Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
-        #     state_dict = model.state_dict()
-        #     state_dict['mask_values'] = dataset.mask_values
-        #     torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
-        #     logging.info(f'Checkpoint {epoch} saved!')
 
 
 def get_args():
