@@ -31,6 +31,8 @@ def train_model(
         weights_dir,
         images_list,
         targets_list,
+        input_channels,
+        output_classes,
         load_weights =False,
         epochs: int = 5,
         batch_size: int = 32,
@@ -54,9 +56,10 @@ def train_model(
     model = model.to(memory_format=torch.channels_last)
 
     logging.info(f'Network:\n'
-                 f'\t{model.n_channels} input channels\n'
-                 f'\t{model.n_classes} output channels (classes)\n'
-                 f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling')
+                 f'\t{input_channels} input channels\n'
+                 f'\t{output_classes} output channels (classes)\n'
+                #  f'\t{"Bilinear" if model.bilinear else "Transposed conv"} upscaling'
+                 )
 
     if load_weights:
         state_dict = torch.load(weights_dir, map_location=device)
@@ -104,7 +107,7 @@ def train_model(
                               lr=learning_rate, weight_decay=weight_decay, momentum=momentum, foreach=True)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor= 0.9, patience=5)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
-    criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss() if output_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_metric =-1
     # 5. Begin training
@@ -115,8 +118,8 @@ def train_model(
             for batch in train_loader:
                 images, true_masks = batch['image'], batch['mask']
 
-                assert images.shape[1] == model.n_channels, \
-                    f'Network has been defined with {model.n_channels} input channels, ' \
+                assert images.shape[1] == input_channels, \
+                    f'Network has been defined with {input_channels} input channels, ' \
                     f'but loaded images have {images.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
 
@@ -125,7 +128,7 @@ def train_model(
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
                     masks_pred = model(images)
-                    if model.n_classes == 1:
+                    if output_classes == 1:
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
                         loss += dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                     else:
@@ -133,7 +136,7 @@ def train_model(
                         loss = criterion(masks_pred, true_masks)
                         loss += dice_loss(
                             F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, model.n_classes).permute(0, 3, 1, 2).float(),
+                            F.one_hot(true_masks, output_classes).permute(0, 3, 1, 2).float(),
                             multiclass=True
                         )
 
@@ -165,7 +168,7 @@ def train_model(
                             if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
                                 histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
-                        val_score = evaluate(model, val_loader, device, amp)
+                        val_score = evaluate(model,output_classes, val_loader, device, amp)
                         scheduler.step(val_score)
                         logging.info('Validation Dice score: {}'.format(val_score))
                         if val_score>best_metric :
