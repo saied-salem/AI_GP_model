@@ -43,7 +43,7 @@ class BasicDataset(Dataset):
         self.mask_dir = mask_dir
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
         self.scale = scale
-
+        self.mask_values = list(sorted(load_image(mask_dir[0])))
 
     def __len__(self):
         return len(self.images_dir)

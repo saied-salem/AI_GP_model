@@ -20,17 +20,7 @@ from Models.basic_unet import UNet
 from Utils.data_loader import BasicDataset
 from Metrics.dice_score import dice_loss
  
-path = 'Dataset_BUSI_with_GT/'
-classes = ['malignant','benign', 'normal']
-all_images = []
-all_masks = []
-for cls in classes:
 
-    for file in sorted(os.listdir(path + cls)):
-        if fnmatch.fnmatch(file, '*mask*.png'):
-            all_masks.append(path+ cls+'/' + file )
-        else :
-            all_images.append(path+ cls+'/'+ file)
 
 dir_checkpoint = Path('./checkpoints/')
 
@@ -54,9 +44,8 @@ def train_model(
         gradient_clipping: float = 1.0,
         
 ):
-    
+   
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
     # Change here to adapt to your data
@@ -74,6 +63,7 @@ def train_model(
         del state_dict['mask_values']
         model.load_state_dict(state_dict)
         logging.info(f'Model loaded from {weights_dir}')
+
 
     model.to(device=device)
     # 1. Create dataset
@@ -179,10 +169,10 @@ def train_model(
                         scheduler.step(val_score)
                         logging.info('Validation Dice score: {}'.format(val_score))
                         if val_score>best_metric :
-                            Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
+                            Path(weights_dir).mkdir(parents=True, exist_ok=True)
                             state_dict = model.state_dict()
                             state_dict['mask_values'] = dataset.mask_values
-                            torch.save(state_dict, str(dir_checkpoint / 'best_checkpoint_dice_val_score.pth'))
+                            torch.save(state_dict, str(weights_dir / 'best_checkpoint_dice_val_score.pth'))
                             logging.info(f'Checkpoint {epoch} saved!')
                             best_metric = val_score
                         try:
