@@ -6,7 +6,7 @@ import fnmatch
 import os
 import json 
 
-model = UNet(n_channels=3, n_classes=3)
+model = UNet(n_channels=3, n_classes=1)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
@@ -33,13 +33,14 @@ print(len(all_images))
 print(len(all_masks))
 if __name__ == '__main__':
     train_model (
+        wb_project_name = configerations['wb_project_name'],
         model = model,
         device = device,
         weights_dir = configerations['saving_weights_dir'],
         images_list = all_images,
         targets_list = all_masks,
         input_channels = 3,
-        output_classes = 3,
+        output_classes = 1,
         epochs = configerations['epochs'],
         batch_size = configerations['batch_size'],
         learning_rate = configerations['learning_rate'],
