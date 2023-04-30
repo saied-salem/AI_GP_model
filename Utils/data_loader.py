@@ -38,20 +38,21 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
 
 
 class BasicDataset(Dataset):
-    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0):
+    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, multi_class: bool = False):
         self.images_dir = images_dir
         self.mask_dir = mask_dir
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
         self.scale = scale
  
         self.mask_values = list(sorted(np.unique(np.array(load_image(mask_dir[0])))))
+        self.multi_class = multi_class
 
 
     def __len__(self):
         return len(self.images_dir)
 
     @staticmethod
-    def preprocess( pil_img, file_name, scale, is_mask):
+    def preprocess( pil_img, file_name, scale, is_mask, multi_class):
         w, h = pil_img.size
         newW, newH = int(scale * 256), int(scale * 256)
         assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
@@ -71,7 +72,10 @@ class BasicDataset(Dataset):
 
             if 'malignant' in file_name:
                 # print("HHHHHHHHHHHHHHHHHHHHHHH")
-                img[img == 1] = 2
+                if multi_class:
+                    img[img == 1] = 2
+                else:
+                    img[img == 1] = 1
                 # print(np.unique(img))
             elif "benign" in file_name:
                 img[img == 1] = 1
@@ -119,8 +123,8 @@ class BasicDataset(Dataset):
         assert img.size == mask.size, \
             f'Image and mask {img_file} should be the same size, but are {img.size} and {mask.size}'
 
-        img = self.preprocess( img,img_file, self.scale, is_mask=False)
-        mask = self.preprocess( mask,mask_file, self.scale, is_mask=True  )
+        img = self.preprocess( img,img_file, self.scale, is_mask=False, multi_class=self.multi_class)
+        mask = self.preprocess( mask,mask_file, self.scale, is_mask=True , multi_class=self.multi_class)
 
         return {
             'image': img,
