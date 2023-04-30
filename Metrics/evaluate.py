@@ -24,6 +24,7 @@ def evaluate(net,output_classes, dataloader, device, amp):
             mask_pred = net(image)
 
             if output_classes == 1:
+                mask_pred = mask_pred.squeeze(dim = 1)
                 assert mask_true.min() >= 0 and mask_true.max() <= 1, 'True mask indices should be in [0, 1]'
                 mask_pred = (F.sigmoid(mask_pred) > 0.5).float()
                 # compute the Dice score
