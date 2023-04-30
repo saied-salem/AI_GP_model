@@ -4,6 +4,8 @@ import os
 import random
 import sys
 import fnmatch
+
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -26,6 +28,7 @@ dir_checkpoint = Path('./checkpoints/')
 
 
 def train_model(
+        wb_project_name,
         model,
         device,
         weights_dir,
@@ -70,8 +73,11 @@ def train_model(
 
     model.to(device=device)
     # 1. Create dataset
-
-    dataset = BasicDataset(images_list, targets_list, img_scale)
+    if output_classes == 1:
+        multi_class = False
+    else:
+        multi_class = True
+    dataset = BasicDataset(images_list, targets_list, img_scale, multi_class)
 
     # 2. Split into train / validation partitions
     n_val = int(len(dataset) * val_percent)
@@ -84,10 +90,15 @@ def train_model(
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     # (Initialize logging)
-    experiment = wandb.init(project='U-Net', resume='allow', anonymous='must')
+    experiment = wandb.init(project= wb_project_name, resume='allow', anonymous='must')
     experiment.config.update(
-        dict(epochs=epochs, batch_size=batch_size, learning_rate=learning_rate,
-             val_percent=val_percent, save_checkpoint=save_checkpoint, img_scale=img_scale, amp=amp)
+        dict(epochs=epochs, 
+             batch_size=batch_size, 
+             learning_rate=learning_rate,
+             val_percent=val_percent, 
+             save_checkpoint=save_checkpoint, 
+             img_scale=img_scale, 
+             amp=amp)
     )
 
     logging.info(f'''Starting training:
@@ -110,6 +121,7 @@ def train_model(
     criterion = nn.CrossEntropyLoss() if output_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
     best_metric =-1
+    log_table = []
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         model.train()
@@ -155,6 +167,10 @@ def train_model(
                     'epoch': epoch
                 })
                 pbar.set_postfix(**{'loss (batch)': loss.item()})
+                log_table.append({'image':  wandb.Image(images[0].cpu()), 
+                                  'predictied_mask': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()), 
+                                  "true_mask":  wandb.Image(true_masks[0].float().cpu())})
+                log_df = pd.DataFrame(log_table)
 
                 # Evaluation round
                 division_step = (n_train // (5 * batch_size))
@@ -183,11 +199,7 @@ def train_model(
                             experiment.log({
                                 'learning rate': optimizer.param_groups[0]['lr'],
                                 'validation Dice': val_score,
-                                'images': wandb.Image(images[0].cpu()),
-                                'masks': {
-                                    'true': wandb.Image(true_masks[0].float().cpu()),
-                                    'pred': wandb.Image(masks_pred.argmax(dim=1)[0].float().cpu()),
-                                },
+                                'image_mask_table': wandb.Table(dataframe=log_df),
                                 'step': global_step,
                                 'epoch': epoch,
                                 **histograms
