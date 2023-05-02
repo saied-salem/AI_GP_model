@@ -1,5 +1,6 @@
 {
-    "wb_project_name": "U_Net_Yasien",
+    "wb_project_name": "U_Net_Name",
+    "wb_run_name": "U_Net_trail_number [i]",
     "epochs" : 5,
     "batch_size":  32,
     "learning_rate":  1e-5,
