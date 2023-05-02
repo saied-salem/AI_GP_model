@@ -34,6 +34,7 @@ print(len(all_masks))
 if __name__ == '__main__':
     train_model (
         wb_project_name = configerations['wb_project_name'],
+        wb_run_name = configerations['wb_run_name'],
         model = model,
         device = device,
         weights_dir = configerations['saving_weights_dir'],
