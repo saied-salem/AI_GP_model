@@ -29,6 +29,7 @@ dir_checkpoint = Path('./checkpoints/')
 
 def train_model(
         wb_project_name,
+        wb_run_name,
         model,
         device,
         weights_dir,
@@ -90,7 +91,7 @@ def train_model(
     val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
 
     # (Initialize logging)
-    experiment = wandb.init(project= wb_project_name, resume='allow', anonymous='must')
+    experiment = wandb.init(project= wb_project_name, entity="ultra-sound-segmentation" , name = "wb_run_name" ,resume='allow', anonymous='must')
     experiment.config.update(
         dict(epochs=epochs, 
              batch_size=batch_size, 
