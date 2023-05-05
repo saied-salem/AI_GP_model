@@ -18,19 +18,35 @@ with open('model_config.json') as json_file:
     print("Type:", type(configerations))
     print(configerations)
 
-path = '/content/drive/MyDrive/GP_AI/Dataset_BUSI_with_GT/'
-classes = ['malignant','benign', 'normal']
-all_images = []
-all_masks = []
-for cls in classes:
 
-    for file in sorted(os.listdir(path + cls)):
-        if fnmatch.fnmatch(file, '*mask*.png'):
-            all_masks.append(path+ cls+'/' + file )
-        else :
-            all_images.append(path+ cls+'/'+ file)
-print(len(all_images))
-print(len(all_masks))
+
+def sort_key_mask(s):
+    # Extract the number following the "mask" prefix
+    num_str = s[4:-4]
+    # Convert the number string to an integer
+    return int(num_str)
+def sort_key_image(s):
+    # Extract the number following the "mask" prefix
+    num_str = s[5:-4]
+    # Convert the number string to an integer
+    return int(num_str)
+
+def adjust_path(img_list, path):
+    for i, img in enumerate(img_list):
+      img_list[i] = path + img
+
+path = '/content/drive/MyDrive/GP_AI/ready_data'
+train_image =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/train/train_images"), key = sort_key_image)
+train_mask =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/train/train_MasksNorm3"), key = sort_key_mask)
+val_image = sorted(os.listdir("/content/drive/MyDrive/GP_AI/ready_data/val/val_images"), key = sort_key_image)
+val_mask =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm3"), key = sort_key_mask)
+
+adjust_path(train_image, "/content/drive/MyDrive/GP_AI/ready_data/train/train_images/")
+adjust_path(train_mask , "/content/drive/MyDrive/GP_AI/ready_data/train/train_MasksNorm3/")
+adjust_path(val_image, "/content/drive/MyDrive/GP_AI/ready_data/val/val_images/")
+adjust_path(val_mask, "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm3/")
+
+
 if __name__ == '__main__':
     train_model (
         wb_project_name = configerations['wb_project_name'],
@@ -38,8 +54,10 @@ if __name__ == '__main__':
         model = model,
         device = device,
         weights_dir = configerations['saving_weights_dir'],
-        images_list = all_images,
-        targets_list = all_masks,
+        train_images_list = train_image,
+        train_targets_list = train_mask,
+        val_images_list = val_image,
+        val_targets_list = val_mask ,
         input_channels = 3,
         output_classes = 1,
         epochs = configerations['epochs'],
