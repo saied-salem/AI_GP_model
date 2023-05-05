@@ -33,8 +33,10 @@ def train_model(
         model,
         device,
         weights_dir,
-        images_list,
-        targets_list,
+        train_images_list,
+        train_targets_list,
+        val_images_list,
+        val_targets_list,
         input_channels,
         output_classes,
         load_weights =False,
@@ -78,13 +80,17 @@ def train_model(
         multi_class = False
     else:
         multi_class = True
-    dataset = BasicDataset(images_list, targets_list, img_scale, multi_class)
+    # dataset = BasicDataset(images_list, targets_list, img_scale, multi_class)
 
     # 2. Split into train / validation partitions
-    n_val = int(len(dataset) * val_percent)
-    n_train = len(dataset) - n_val
-    train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
-
+    # n_val = int(len(dataset) * val_percent)
+    # n_train = len(dataset) - n_val
+    # train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
+    train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class)
+    val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
+    
+    n_val = int(len(train_set))
+    n_train = len(val_set) 
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
@@ -191,7 +197,7 @@ def train_model(
                         if val_score>best_metric :
                             Path(weights_dir).mkdir(parents=True, exist_ok=True)
                             state_dict = model.state_dict()
-                            state_dict['mask_values'] = dataset.mask_values
+                            state_dict['mask_values'] = train_set.mask_values
                             saving_path = weights_dir + 'best_checkpoint_dice_val_score.pth'
                             torch.save(state_dict, saving_path)
                             logging.info(f'Checkpoint {epoch} saved!')
