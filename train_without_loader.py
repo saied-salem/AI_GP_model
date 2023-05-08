@@ -210,7 +210,7 @@ def train_model(
             if val_score>best_metric :
                 Path(weights_dir).mkdir(parents=True, exist_ok=True)
                 state_dict = model.state_dict()
-                state_dict['mask_values'] = train_set.mask_values
+                # state_dict['mask_values'] = train_set.mask_values
                 saving_path = weights_dir + 'best_checkpoint_dice_val_score.pth'
                 torch.save(state_dict, saving_path)
                 logging.info(f'Checkpoint {epoch} saved!')
