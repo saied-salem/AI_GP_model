@@ -68,7 +68,9 @@ def train_model(
                  )
 
     if load_weights:
-        state_dict = torch.load(weights_dir, map_location=device)
+        weights_file= os.listdir(weights_dir)
+        weights_path = weights_dir + weights_file[0]
+        state_dict = torch.load(weights_path, map_location=device)
         del state_dict['mask_values']
         model.load_state_dict(state_dict)
         logging.info(f'Model loaded from {weights_dir}')
