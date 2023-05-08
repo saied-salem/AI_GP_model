@@ -39,7 +39,7 @@ def train_model(
         val_targets_list,
         input_channels,
         output_classes,
-        load_weights =False,
+        load_weights =True,
         epochs: int = 5,
         batch_size: int = 32,
         learning_rate: float = 1e-5,
