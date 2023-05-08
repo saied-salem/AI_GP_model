@@ -89,15 +89,15 @@ def train_model(
     train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class)
     val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
     
-    n_val = int(len(train_set))
-    n_train = len(val_set) 
+    n_train = len(train_set) 
+    n_val = int(len(val_set))
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    val_loader = DataLoader(val_set,batch_size=n_val, shuffle=False, drop_last=True, num_workers=os.cpu_count(), pin_memory=True)
 
     # (Initialize logging)
-    experiment = wandb.init(project= wb_project_name, entity="ultra-sound-segmentation" , name = wb_run_name ,resume='allow', anonymous='must')
+    experiment = wandb.init(project='U-Net',resume='allow', anonymous='must')
     experiment.config.update(
         dict(epochs=epochs, 
              batch_size=batch_size, 
@@ -180,39 +180,39 @@ def train_model(
                 log_df = pd.DataFrame(log_table)
 
                 # Evaluation round
-                division_step = (n_train // (5 * batch_size))
-                if division_step > 0:
-                    if global_step % division_step == 0:
-                        histograms = {}
-                        for tag, value in model.named_parameters():
-                            tag = tag.replace('/', '.')
-                            if not (torch.isinf(value) | torch.isnan(value)).any():
-                                histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                            if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                                histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+                # division_step = (n_train // (5 * batch_size))
+                # if division_step > 0:
+                #     if global_step % division_step == 0:
+            histograms = {}
+            for tag, value in model.named_parameters():
+                tag = tag.replace('/', '.')
+                if not (torch.isinf(value) | torch.isnan(value)).any():
+                    histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
+                if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
+                    histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
-                        val_score = evaluate(model,output_classes, val_loader, device, amp)
-                        scheduler.step(val_score)
-                        logging.info('Validation Dice score: {}'.format(val_score))
-                        if val_score>best_metric :
-                            Path(weights_dir).mkdir(parents=True, exist_ok=True)
-                            state_dict = model.state_dict()
-                            state_dict['mask_values'] = train_set.mask_values
-                            saving_path = weights_dir + 'best_checkpoint_dice_val_score.pth'
-                            torch.save(state_dict, saving_path)
-                            logging.info(f'Checkpoint {epoch} saved!')
-                            best_metric = val_score
-                        try:
-                            experiment.log({
-                                'learning rate': optimizer.param_groups[0]['lr'],
-                                'validation Dice': val_score,
-                                'image_mask_table': wandb.Table(dataframe=log_df),
-                                'step': global_step,
-                                'epoch': epoch,
-                                **histograms
-                            })
-                        except:
-                            pass
+            val_score = evaluate(model,output_classes, val_loader, device, amp)
+            scheduler.step(val_score)
+            logging.info('Validation Dice score: {}'.format(val_score))
+            if val_score>best_metric :
+                Path(weights_dir).mkdir(parents=True, exist_ok=True)
+                state_dict = model.state_dict()
+                state_dict['mask_values'] = train_set.mask_values
+                saving_path = weights_dir + 'best_checkpoint_dice_val_score.pth'
+                torch.save(state_dict, saving_path)
+                logging.info(f'Checkpoint {epoch} saved!')
+                best_metric = val_score
+            try:
+                experiment.log({
+                    'learning rate': optimizer.param_groups[0]['lr'],
+                    'validation Dice': val_score,
+                    'image_mask_table': wandb.Table(dataframe=log_df),
+                    'step': global_step,
+                    'epoch': epoch,
+                    **histograms
+                })
+            except:
+                pass
 
 
 
