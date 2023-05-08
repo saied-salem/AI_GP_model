@@ -240,7 +240,7 @@ def loadAllImagesAndMasks(images_list,masks_list,val_images_list,val_masks_list)
         np_masks = preprocess(pil_mask, masks_list[i] , input_size, True, False)    
         images[i] = np_image
         masks[i] = np_masks
-
+    print("train images loaded ###")
     for i in range(n_val):
         pil_image = load_image(val_images_list[i])
         pil_mask = load_image(val_masks_list[i])
@@ -248,6 +248,7 @@ def loadAllImagesAndMasks(images_list,masks_list,val_images_list,val_masks_list)
         val_np_masks = preprocess(pil_mask, val_masks_list[i] , input_size, True, False)    
         val_images[i] = val_np_image
         val_masks[i] = val_np_masks
+    print("val images loaded ###")
 
     return images , masks , val_images, val_masks
 
