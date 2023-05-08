@@ -14,8 +14,11 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 from pathlib import Path
 from torch import optim
+from PIL import Image
+
 from torch.utils.data import TensorDataset, DataLoader, random_split
 from tqdm import tqdm
+from os.path import splitext, isfile, join
 
 import wandb
 from Metrics.evaluate import evaluate
@@ -90,8 +93,6 @@ def train_model(
     # train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class)
     # val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
     
-    n_val = int(len(train_set))
-    n_train = len(val_set) 
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     # train_loader = DataLoader(train_set, shuffle=True, **loader_args)
@@ -105,9 +106,11 @@ def train_model(
     val_dataset = TensorDataset(val_images_tensor, val_masks_tensor)
     train_loader = DataLoader(dataset, shuffle=True, **loader_args)
     val_loader = DataLoader(val_dataset, shuffle=False, drop_last=True, **loader_args)
+    n_train = images.shape[0]
+    n_val = val_images.shape[0]
 
     # (Initialize logging)
-    experiment = wandb.init(project= wb_project_name, entity="ultra-sound-segmentation" , name = wb_run_name ,resume='allow', anonymous='must')
+    experiment = wandb.init(project='U-Net',resume='allow', anonymous='must')
     experiment.config.update(
         dict(epochs=epochs, 
              batch_size=batch_size, 
@@ -145,7 +148,10 @@ def train_model(
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
-                images, true_masks = batch['image'], batch['mask']
+                print("#################")
+
+                print(len(batch))
+                images, true_masks = batch
 
                 assert images.shape[1] == input_channels, \
                     f'Network has been defined with {input_channels} input channels, ' \
@@ -226,21 +232,23 @@ def train_model(
 
 def loadAllImagesAndMasks(images_list,masks_list,val_images_list,val_masks_list):
     input_size = 128
-    n_train  = len(images_list)
-    n_val  = len(val_images_list)
-    images = np.zeros((n_train,input_size,input_size,3))
+    n_train  = 100   # len(images_list)
+    n_val  = 10  #  len(val_images_list)
+    images = np.zeros((n_train,3,input_size,input_size))
     masks = np.zeros((n_train,input_size,input_size))
-    val_images = np.zeros((n_val,input_size,input_size,3))
+    val_images = np.zeros((n_val,3,input_size,input_size))
     val_masks = np.zeros((n_val,input_size,input_size))
 
     for i in range(n_train):
         pil_image = load_image(images_list[i])
         pil_mask = load_image(masks_list[i])
         np_image = preprocess(pil_image, images_list[i] , input_size, False, False)
-        np_masks = preprocess(pil_mask, masks_list[i] , input_size, True, False)    
+        np_masks = preprocess(pil_mask, masks_list[i] , input_size, True, False)
         images[i] = np_image
         masks[i] = np_masks
+
     print("train images loaded ###")
+
     for i in range(n_val):
         pil_image = load_image(val_images_list[i])
         pil_mask = load_image(val_masks_list[i])
@@ -253,9 +261,6 @@ def loadAllImagesAndMasks(images_list,masks_list,val_images_list,val_masks_list)
     return images , masks , val_images, val_masks
 
 
-        
-
-    return 0
         
 def load_image(filename):
     ext = splitext(filename)[1]
