@@ -148,9 +148,6 @@ def train_model(
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
-                print("#################")
-
-                print(len(batch))
                 images, true_masks = batch
 
                 assert images.shape[1] == input_channels, \

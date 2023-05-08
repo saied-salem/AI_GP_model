@@ -1,4 +1,4 @@
-from train import train_model
+from train_without_loader import train_model
 from Models.basic_unet import UNet
 import torch
 from pathlib import Path
