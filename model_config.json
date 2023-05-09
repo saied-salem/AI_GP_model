@@ -1,9 +1,10 @@
 {
     "wb_project_name": "U_Net_Name",
     "wb_run_name": "U_Net_trail_number [i]",
-    "epochs" : 5,
-    "batch_size":  32,
-    "learning_rate":  1e-5,
+    "is_multi_class":true,
+    "epochs" : 30,
+    "batch_size":  16,
+    "learning_rate":  2e-4,
     "val_percent":  0.1,
     "save_checkpoint": true,
     "img_scale":  0.5,

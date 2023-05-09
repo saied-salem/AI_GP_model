@@ -5,9 +5,8 @@ from pathlib import Path
 import fnmatch
 import os
 import json 
+from sklearn.model_selection import train_test_split
 
-model = UNet(n_channels=3, n_classes=1)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 configerations= None
@@ -18,6 +17,14 @@ with open('model_config.json') as json_file:
     print("Type:", type(configerations))
     print(configerations)
 
+num_class = 1
+if configerations['is_multi_class'] == True:
+   num_class=3
+else:
+   num_class=1
+   
+model = UNet(n_channels=3, n_classes=num_class)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def sort_key_mask(s):
@@ -49,6 +56,7 @@ adjust_path(val_mask, "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm
 ##################################################################################
                                 #  Multi class
 ##################################################################################
+
 path = '/content/drive/MyDrive/GP_AI/ready_data'
 original_data_path = '/content/drive/MyDrive/GP_AI/Dataset_BUSI_with_GT/'
 classes = ['malignant','benign', 'normal']
@@ -82,6 +90,9 @@ all_images.extend(extra_images)
 all_masks.extend(extra_masks)
 all_images= sorted(all_images)
 all_masks= sorted(all_masks)
+
+all_images_train, all_images_val, all_masks_train, all_masks_val = train_test_split(all_images, 
+                                            all_masks, test_size=0.15, random_state=42)
 print(len(all_images))
 print(len(all_masks))
              
@@ -93,12 +104,12 @@ if __name__ == '__main__':
         model = model,
         device = device,
         weights_dir = configerations['saving_weights_dir'],
-        train_images_list = all_images,
-        train_targets_list = all_masks,
-        val_images_list = val_image,
-        val_targets_list = val_mask ,
+        train_images_list = all_images_train,
+        train_targets_list = all_masks_train,
+        val_images_list = all_images_val,
+        val_targets_list = all_masks_val ,
         input_channels = 3,
-        output_classes = 1,
+        output_classes = num_class,
         epochs = configerations['epochs'],
         batch_size = configerations['batch_size'],
         learning_rate = configerations['learning_rate'],
