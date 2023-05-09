@@ -103,6 +103,7 @@ if __name__ == '__main__':
         wb_run_name = configerations['wb_run_name'],
         model = model,
         device = device,
+        load_weights = configerations['load_weights'],
         weights_dir = configerations['saving_weights_dir'],
         train_images_list = all_images_train,
         train_targets_list = all_masks_train,

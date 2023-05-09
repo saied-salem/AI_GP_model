@@ -12,5 +12,6 @@
     "weight_decay":  1e-8,
     "momentum":  0.999,
     "gradient_clipping":  1.0,
+    "load_weights": false,
     "saving_weights_dir": "/content/drive/MyDrive/GP_AI/basic_unet_weights/"
 }
