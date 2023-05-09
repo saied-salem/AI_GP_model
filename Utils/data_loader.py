@@ -64,6 +64,9 @@ class BasicDataset(Dataset):
 
         if is_mask:
             #For  segmentation and classes Clasifications
+            if(np.max(img)==255):
+              img= img/255
+            print(type(img))
             if(img.ndim > 2):
                 # print("HHHHHHHHHHHHHHHHHHHHHHH")
 
