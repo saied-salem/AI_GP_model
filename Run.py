@@ -46,6 +46,101 @@ adjust_path(train_mask , "/content/drive/MyDrive/GP_AI/ready_data/train/train_Ma
 adjust_path(val_image, "/content/drive/MyDrive/GP_AI/ready_data/val/val_images/")
 adjust_path(val_mask, "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm3/")
 
+##################################################################################
+                                #  Multi class
+##################################################################################
+
+from pathlib import Path
+import fnmatch
+import os
+import json 
+
+path = '/content/drive/MyDrive/GP_AI/ready_data'
+original_data_path = '/content/drive/MyDrive/GP_AI/Dataset_BUSI_with_GT/'
+classes = ['malignant','benign', 'normal']
+all_images = []
+all_masks = []
+for cls in classes:
+    for file in sorted(os.listdir(original_data_path + cls)):
+        if fnmatch.fnmatch(file, '*mask*.png'):
+            all_masks.append(original_data_path+ cls+'/' + file )
+        else :
+            all_images.append(original_data_path+ cls+'/'+ file)
+# print(len(all_images))
+# print(len(all_masks))
+# print((all_images))
+# print((all_masks))
+# extra Data
+extra_path = '/content/drive/MyDrive/GP_AI/ExtraMultiClass/'
+# images_and_masks = ['Images','Masks']
+extra_images = []
+extra_masks = []
+for cls in classes:
+  # print(images_and_masks)
+  curr_path = extra_path + cls
+  for file in sorted(os.listdir(curr_path)):
+    # images_and_masks = os.listdir(extra_path + cls)
+    if file =='Images': 
+      for img in sorted(os.listdir(curr_path+'/'+file)):  
+        extra_images.append(curr_path+'/'+file+'/' + img )
+    else:
+      for img in sorted(os.listdir(curr_path+'/'+file)):  
+        extra_masks.append(curr_path+'/' + file+'/'+img)
+# print(len(extra_images))
+# print(len(extra_masks))
+# print((extra_images))
+# print((extra_masks))
+all_images.extend(extra_images)
+all_masks.extend(extra_masks)
+all_images= sorted(all_images)
+all_masks= sorted(all_masks)
+from pathlib import Path
+import fnmatch
+import os
+import json 
+
+path = '/content/drive/MyDrive/GP_AI/ready_data'
+original_data_path = '/content/drive/MyDrive/GP_AI/Dataset_BUSI_with_GT/'
+classes = ['malignant','benign', 'normal']
+all_images = []
+all_masks = []
+for cls in classes:
+    for file in sorted(os.listdir(original_data_path + cls)):
+        if fnmatch.fnmatch(file, '*mask*.png'):
+            all_masks.append(original_data_path+ cls+'/' + file )
+        else :
+            all_images.append(original_data_path+ cls+'/'+ file)
+# print(len(all_images))
+# print(len(all_masks))
+# print((all_images))
+# print((all_masks))
+# extra Data
+extra_path = '/content/drive/MyDrive/GP_AI/ExtraMultiClass/'
+# images_and_masks = ['Images','Masks']
+extra_images = []
+extra_masks = []
+for cls in classes:
+  # print(images_and_masks)
+  curr_path = extra_path + cls
+  for file in sorted(os.listdir(curr_path)):
+    # images_and_masks = os.listdir(extra_path + cls)
+    if file =='Images': 
+      for img in sorted(os.listdir(curr_path+'/'+file)):  
+        extra_images.append(curr_path+'/'+file+'/' + img )
+    else:
+      for img in sorted(os.listdir(curr_path+'/'+file)):  
+        extra_masks.append(curr_path+'/' + file+'/'+img)
+# print(len(extra_images))
+# print(len(extra_masks))
+# print((extra_images))
+# print((extra_masks))
+all_images.extend(extra_images)
+all_masks.extend(extra_masks)
+all_images= sorted(all_images)
+all_masks= sorted(all_masks)
+print(len(all_images))
+print(len(all_masks))
+             
 
 if __name__ == '__main__':
     train_model (
