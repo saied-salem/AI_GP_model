@@ -23,9 +23,21 @@ if configerations['is_multi_class'] == True:
 else:
    num_class=1
    
-model = UNet(n_channels=3, n_classes=num_class)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# model = UNet(n_channels=3, n_classes=num_class)
+from new_unet import UNet
+model = UNet(in_channels=3,
+             out_channels=3,
+             n_blocks=5,
+             start_filters=32,
+             activation='relu',
+             normalization='batch',
+             conv_mode='same',
+             dim=2)
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+from torchsummary import summary
+summary = summary(model, (1, 512, 512))
+print(summary)
 
 def sort_key_mask(s):
     # Extract the number following the "mask" prefix
