@@ -99,7 +99,9 @@ def train_model(
                                                                                                     A.ElasticTransform(alpha_affine=16, border_mode=0 ,p=1.0),
                                                                                                     ToTensorV2()
                                                                                                 ]))
-    val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
+    val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class,transform= 
+                                                                                              A.Compose([ToTensorV2()
+                                                                                                ]))
     
     n_train = len(train_set)
     n_val = int(len(val_set))
