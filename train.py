@@ -5,6 +5,9 @@ import random
 import sys
 import fnmatch
 
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
+
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -19,7 +22,7 @@ from tqdm import tqdm
 import wandb
 from Metrics.evaluate import evaluate
 from Models.basic_unet import UNet
-from Utils.data_loader import BasicDatase
+from Utils.data_loader import BasicDataset
 from Metrics.dice_score import dice_loss
  
 
@@ -88,18 +91,13 @@ def train_model(
     # n_val = int(len(dataset) * val_percent)
     # n_train = len(dataset) - n_val
     # train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
-    train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class, transform=transforms.Compose([
-                                                                                                    transforms.RandomHorizontalFlip(),
-                                                                                                    transforms.RandomVerticalFlip(),
-                                                                                                    transforms.RandomRotation(degrees=(0, 180)),
-                                                                                                    transforms.RandomAffine(degrees=(0, 180), translate=(0.1, 0.2), scale=(0.8, 0.9)),
-                                                                                                    transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
-                                                                                                    transforms.RandomCrop([128, 128]),
-                                                                                                    transforms.RandomAutocontrast(),
-                                                                                                    # transforms.RandomPerspective(distortion_scale=0.3, p=0.3),
-                                                                                                    transforms.RandomEqualize()
-
-                                                                                                    transforms.ToTensor()
+    train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class, transform=
+                                                                                                    A.Compose([
+                                                                                                    A.Rotate(limit=180 , border_mode=0 , p=1.0),
+                                                                                                    A.RandomBrightnessContrast(brightness_limit=0.55, p=1.0, contrast_limit=0.6),
+                                                                                                    A.RandomGamma(p=1.0),
+                                                                                                    A.ElasticTransform(alpha_affine=16, border_mode=0 ,p=1.0),
+                                                                                                    ToTensorV2()
                                                                                                 ]))
     val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
     
@@ -138,7 +136,7 @@ def train_model(
     # 4. Set up the optimizer, the loss, the learning rate scheduler and the loss scaling for AMP
     optimizer = optim.AdamW(model.parameters(),
                               lr=learning_rate, foreach=True, weight_decay=weight_decay)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor= 0.7, patience=3)  # goal: maximize Dice score
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max',factor= 0.8, patience=4)  # goal: maximize Dice score
     grad_scaler = torch.cuda.amp.GradScaler(enabled=amp)
     criterion = nn.CrossEntropyLoss() if output_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
@@ -151,6 +149,9 @@ def train_model(
         with tqdm(total=n_train, desc=f'Epoch {epoch}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
                 images, true_masks = batch['image'], batch['mask']
+                # print()
+                # print('true_masks',true_masks.shape)
+                # print('true_masks',torch.unique(true_masks))
 
                 assert images.shape[1] == input_channels, \
                     f'Network has been defined with {input_channels} input channels, ' \
@@ -162,6 +163,9 @@ def train_model(
 
                 with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
                     masks_pred = model(images)
+                    # print()
+                    # print('masks_pred',masks_pred.shape)
+                    # print('masks_pred',torch.unique(masks_pred))
                     if output_classes == 1:
                         loss = dice_loss(F.sigmoid(masks_pred.squeeze(1)), true_masks.float(), multiclass=False)
                         # loss += criterion(masks_pred.squeeze(1), true_masks.float())

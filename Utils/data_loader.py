@@ -38,12 +38,12 @@ def unique_mask_values(idx, mask_dir, mask_suffix):
 
 
 class BasicDataset(Dataset):
-    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, multi_class: bool = False):
+    def __init__(self, images_dir: str, mask_dir: str, scale: float = 1.0, multi_class: bool = False,  transform=None):
         self.images_dir = images_dir
         self.mask_dir = mask_dir
         assert 0 < scale <= 1, 'Scale must be between 0 and 1'
         self.scale = scale
- 
+        self.transform= transform
         self.mask_values = list(sorted(np.unique(np.array(load_image(mask_dir[0])))))
         self.multi_class = multi_class
 
@@ -87,7 +87,7 @@ class BasicDataset(Dataset):
 
             num_classes = 3
             # print(img)
-            img = torch.tensor(img).to(torch.int64)
+            img = img
             # img = one_hot(img, num_classes)           
             # img = img.permute((2, 0, 1))
             #For segemtation background and for ground only  
@@ -97,20 +97,21 @@ class BasicDataset(Dataset):
             #     img[img == 1] = 1
             # elif 'normal' in file_name:
             #     img= np.zeros((img.shape[0],img.shape[1]))
-
+            img=img.astype(dtype=np.float32)
+            # print(img.dtype)
             return img
 
         else:
-            img= img/255
+            # img= img/255
             if img.ndim == 2:
                 img = img[np.newaxis, ...]
             else:
-                img = img[:,:,:3].transpose((2, 0, 1))
+                img = img[:,:,:3]
 
             if (img > 1).any():
                 img = img / 255.0
 
-            return torch.tensor(img)
+            return img.astype(np.float32)
 
     def __getitem__(self, idx):
 
@@ -121,16 +122,21 @@ class BasicDataset(Dataset):
         # assert len(mask_file) == 1, f'Either no mask or multiple masks found for the ID {img_file}: {mask_file}'
         mask = load_image(mask_file)
         img = load_image(img_file)
+        # print(img)
+
         # print("load_image: ", np.unique(img))
 
         assert img.size == mask.size, \
             f'Image and mask {img_file} should be the same size, but are {img.size} and {mask.size}'
 
         img = self.preprocess( img,img_file, self.scale, is_mask=False, multi_class=self.multi_class)
+        # print(img.shape)
         mask = self.preprocess( mask,mask_file, self.scale, is_mask=True , multi_class=self.multi_class)
-
+        augmantation_data = self.transform(image=img, mask=mask)
+        image = augmantation_data["image"]
+        mask = augmantation_data["mask"]
         return {
-            'image': img,
+            'image': image,
             'mask': mask 
         }
         # return img , mask

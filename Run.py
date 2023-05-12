@@ -23,90 +23,27 @@ if configerations['is_multi_class'] == True:
 else:
    num_class=1
    
-# model = UNet(n_channels=3, n_classes=num_class)
-from new_unet import UNet
-model = UNet(in_channels=3,
-             out_channels=3,
-             n_blocks=5,
-             start_filters=32,
-             activation='relu',
-             normalization='batch',
-             conv_mode='same',
-             dim=2)
+model = UNet(n_channels=3, n_classes=num_class)
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-from torchsummary import summary
-summary = summary(model, (1, 512, 512))
-print(summary)
+training_data =None
+val_data =None
 
-def sort_key_mask(s):
-    # Extract the number following the "mask" prefix
-    num_str = s[4:-4]
-    # Convert the number string to an integer
-    return int(num_str)
-def sort_key_image(s):
-    # Extract the number following the "mask" prefix
-    num_str = s[5:-4]
-    # Convert the number string to an integer
-    return int(num_str)
+with open('/content/drive/MyDrive/GP_AI/New_data/training.json') as f:
+    training_data = json.load(f)  
+with open('/content/drive/MyDrive/GP_AI/New_data/val.json') as f:
+    val_data = json.load(f)
 
-def adjust_path(img_list, path):
-    for i, img in enumerate(img_list):
-      img_list[i] = path + img
-
-path = '/content/drive/MyDrive/GP_AI/ready_data'
-train_image =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/train/train_images"), key = sort_key_image)
-train_mask =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/train/train_MasksNorm3"), key = sort_key_mask)
-val_image = sorted(os.listdir("/content/drive/MyDrive/GP_AI/ready_data/val/val_images"), key = sort_key_image)
-val_mask =sorted(os.listdir( "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm3"), key = sort_key_mask)
-
-adjust_path(train_image, "/content/drive/MyDrive/GP_AI/ready_data/train/train_images/")
-adjust_path(train_mask , "/content/drive/MyDrive/GP_AI/ready_data/train/train_MasksNorm3/")
-adjust_path(val_image, "/content/drive/MyDrive/GP_AI/ready_data/val/val_images/")
-adjust_path(val_mask, "/content/drive/MyDrive/GP_AI/ready_data/val/val_MasksNorm3/")
+training_images, training_masks = training_data['images'], training_data["masks"]
+val_images, val_masks = val_data['images'], val_data["masks"]
 
 ##################################################################################
                                 #  Multi class
 ##################################################################################
 
-path = '/content/drive/MyDrive/GP_AI/ready_data'
-original_data_path = '/content/drive/MyDrive/GP_AI/Dataset_BUSI_with_GT/'
-classes = ['malignant','benign', 'normal']
-all_images = []
-all_masks = []
-for cls in classes:
-    for file in sorted(os.listdir(original_data_path + cls)):
-        if fnmatch.fnmatch(file, '*mask*.png'):
-            all_masks.append(original_data_path+ cls+'/' + file )
-        else :
-            all_images.append(original_data_path+ cls+'/'+ file)
-
-# extra Data
-extra_path = '/content/drive/MyDrive/GP_AI/ExtraMultiClass/'
-# images_and_masks = ['Images','Masks']
-extra_images = []
-extra_masks = []
-for cls in classes:
-  # print(images_and_masks)
-  curr_path = extra_path + cls
-  for file in sorted(os.listdir(curr_path)):
-    # images_and_masks = os.listdir(extra_path + cls)
-    if file =='Images': 
-      for img in sorted(os.listdir(curr_path+'/'+file)):  
-        extra_images.append(curr_path+'/'+file+'/' + img )
-    else:
-      for img in sorted(os.listdir(curr_path+'/'+file)):  
-        extra_masks.append(curr_path+'/' + file+'/'+img)
-
-all_images.extend(extra_images)
-all_masks.extend(extra_masks)
-all_images= sorted(all_images)
-all_masks= sorted(all_masks)
-
-all_images_train, all_images_val, all_masks_train, all_masks_val = train_test_split(all_images, 
-                                            all_masks, test_size=0.15, random_state=42)
-print(len(all_images))
-print(len(all_masks))
+print('training ',len(training_images))
+print("val ",len(val_images))
              
 
 if __name__ == '__main__':
@@ -117,10 +54,10 @@ if __name__ == '__main__':
         device = device,
         load_weights = configerations['load_weights'],
         weights_dir = configerations['saving_weights_dir'],
-        train_images_list = all_images_train,
-        train_targets_list = all_masks_train,
-        val_images_list = all_images_val,
-        val_targets_list = all_masks_val ,
+        train_images_list = training_images[:10],
+        train_targets_list = training_masks[:10],
+        val_images_list = val_images[:10],
+        val_targets_list = val_masks[:10],
         input_channels = 3,
         output_classes = num_class,
         epochs = configerations['epochs'],
