@@ -15,12 +15,10 @@ def evaluate(net,output_classes, dataloader, device, amp):
     with torch.autocast(device.type if device.type != 'mps' else 'cpu', enabled=amp):
         for batch in tqdm(dataloader, total=num_val_batches, desc='Validation round', unit='batch', leave=False):
             image, mask_true = None ,None
-            print("heeeeeeeeeeeee")
+
             if(type(batch)== list):
                 image, mask_true = batch
-                print("hhhhhhhhhhhhhhhhhhhhh")
             else:
-                print("elsssssssssssssse")
                 image, mask_true = batch['image'], batch['mask']
 
 

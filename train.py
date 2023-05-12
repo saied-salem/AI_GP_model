@@ -72,7 +72,7 @@ def train_model(
 
     if load_weights:
         weights_file= os.listdir(weights_dir)
-        weights_path = weights_dir + weights_file[0]
+        weights_path = weights_dir + weights_file[1]
         state_dict = torch.load(weights_path, map_location=device)
         del state_dict['mask_values']
         model.load_state_dict(state_dict)
@@ -93,22 +93,22 @@ def train_model(
     # train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
     train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class, transform=
                                                                                                     A.Compose([
-                                                                                                    A.Rotate(limit=180 , border_mode=0 , p=1.0),
-                                                                                                    A.RandomBrightnessContrast(brightness_limit=0.55, p=1.0, contrast_limit=0.6),
-                                                                                                    A.RandomGamma(p=1.0),
-                                                                                                    A.ElasticTransform(alpha_affine=16, border_mode=0 ,p=1.0),
+                                                                                                    A.Rotate(limit=30 , border_mode=0 , p=0.2),
+                                                                                                    A.RandomBrightnessContrast(brightness_limit=0.2, p=0.3, contrast_limit=0.3),
+                                                                                                    A.RandomGamma(p=0.8),
+                                                                                                    A.ElasticTransform(alpha_affine=16, border_mode=0 ,p=0.3),
                                                                                                     ToTensorV2()
                                                                                                 ]))
     val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class,transform= 
-                                                                                              A.Compose([ToTensorV2()
+                                                                                              A.Compose([
+                                                                                                    ToTensorV2()
                                                                                                 ]))
-    
     n_train = len(train_set)
     n_val = int(len(val_set))
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
     train_loader = DataLoader(train_set, shuffle=True, **loader_args)
-    val_loader = DataLoader(val_set, shuffle=False, drop_last=True, **loader_args)
+    val_loader = DataLoader(val_set, shuffle=False, **loader_args)
 
     # (Initialize logging)
     experiment = wandb.init(project= wb_project_name, entity="ultra-sound-segmentation" , name = wb_run_name ,resume='allow', anonymous='must')

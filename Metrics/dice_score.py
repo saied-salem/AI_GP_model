@@ -6,6 +6,8 @@ def dice_coeff(input: Tensor, target: Tensor, reduce_batch_first: bool = False, 
     # Average of Dice coefficient for all batches, or for a single mask
     assert input.size() == target.size()
     assert input.dim() == 3 or not reduce_batch_first
+    print('input.size()',input.size())
+    print('target.size()',target.size())
 
     sum_dim = (-1, -2) if input.dim() == 2 or not reduce_batch_first else (-1, -2, -3)
 
