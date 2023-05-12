@@ -19,7 +19,7 @@ from tqdm import tqdm
 import wandb
 from Metrics.evaluate import evaluate
 from Models.basic_unet import UNet
-from Utils.data_loader import BasicDataset
+from Utils.data_loader import BasicDatase
 from Metrics.dice_score import dice_loss
  
 
@@ -60,7 +60,7 @@ def train_model(
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixe
     model = model.to(memory_format=torch.channels_last)
-
+    print(model.named_parameters())
     logging.info(f'Network:\n'
                  f'\t{input_channels} input channels\n'
                  f'\t{output_classes} output channels (classes)\n'
@@ -88,10 +88,22 @@ def train_model(
     # n_val = int(len(dataset) * val_percent)
     # n_train = len(dataset) - n_val
     # train_set, val_set = random_split(dataset, [n_train, n_val], generator=torch.Generator().manual_seed(0))
-    train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class)
+    train_set = BasicDataset(train_images_list, train_targets_list, img_scale, multi_class, transform=transforms.Compose([
+                                                                                                    transforms.RandomHorizontalFlip(),
+                                                                                                    transforms.RandomVerticalFlip(),
+                                                                                                    transforms.RandomRotation(degrees=(0, 180)),
+                                                                                                    transforms.RandomAffine(degrees=(0, 180), translate=(0.1, 0.2), scale=(0.8, 0.9)),
+                                                                                                    transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+                                                                                                    transforms.RandomCrop([128, 128]),
+                                                                                                    transforms.RandomAutocontrast(),
+                                                                                                    # transforms.RandomPerspective(distortion_scale=0.3, p=0.3),
+                                                                                                    transforms.RandomEqualize()
+
+                                                                                                    transforms.ToTensor()
+                                                                                                ]))
     val_set = BasicDataset(val_images_list, val_targets_list, img_scale, multi_class)
     
-    n_train = len(train_set) 
+    n_train = len(train_set)
     n_val = int(len(val_set))
     # 3. Create data loaders
     loader_args = dict(batch_size=batch_size, num_workers=os.cpu_count(), pin_memory=True)
@@ -191,8 +203,13 @@ def train_model(
                 tag = tag.replace('/', '.')
                 if not (torch.isinf(value) | torch.isnan(value)).any():
                     histograms['Weights/' + tag] = wandb.Histogram(value.data.cpu())
-                if not (torch.isinf(value.grad) | torch.isnan(value.grad)).any():
-                    histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
+                if value.grad==None:
+                  # print("LOoooooooooooooooooooooool")
+                  pass
+                # print("vaaaaaaal",value.grad)
+                else:
+                  if not ( torch.isnan(value.grad) | torch.isinf(value.grad) ).any():
+                      histograms['Gradients/' + tag] = wandb.Histogram(value.grad.data.cpu())
 
             val_score = evaluate(model,output_classes, val_loader, device, amp)
             scheduler.step(val_score)
