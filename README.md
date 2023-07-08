@@ -1,17 +1,17 @@
 # Segmentation_engine
-#Code Structure
+# Code Structure
+```angular2
 ├── Metrics        
 │   ├── dice_score.py
 │   └── evaluate.py 
-├── models           # Model design
-│   ├── nn
-│   │   └── module.py
-│   │── basic_unet.py     
-│   │── Unet.py    
+├── models          
+│   ├── basic_unet.py     
+│   ├── Unet.py    
 │   └── unet_blocks.py      
-|── utils            # Dataset loader
+├──utils            
 |   └── data_loader.py
 ├── train.py         
 ├── model_config.json       
 └── Run.py       
+```
 
